@@ -284,21 +284,42 @@ window.contextCopyText = function() {
   const tab = state.tabs[state.activeTab];
   if (!tab) return;
 
-  let textToCopy = '';
-  if (state.selectedLines.size > 0) {
-    const sorted = Array.from(state.selectedLines).sort((a, b) => a - b);
-    textToCopy = sorted.map(i => tab.lines[i] || '').join('\n');
-  } else if (_contextLineIndex >= 0 && tab.lines[_contextLineIndex] !== undefined) {
-    textToCopy = tab.lines[_contextLineIndex];
+  // Jika belum ada baris yang dipilih, otomatis pilih baris yang diklik kanan
+  // atau baris yang dicakup seleksi teks mouse
+  if (state.selectedLines.size === 0) {
+    const sel = window.getSelection();
+    let detectedLines = [];
+    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+      const rows = document.querySelectorAll('.editor-row');
+      rows.forEach(row => {
+        if (sel.containsNode(row, true)) {
+          const line = parseInt(row.getAttribute('data-line'), 10);
+          if (!isNaN(line)) detectedLines.push(line);
+        }
+      });
+    }
+
+    if (detectedLines.length > 0) {
+      detectedLines.forEach(l => state.selectedLines.add(l));
+    } else if (_contextLineIndex >= 0 && tab.lines[_contextLineIndex] !== undefined) {
+      state.selectedLines.add(_contextLineIndex);
+    }
+
+    updateRowSelectionDOM();
+    updateSelectionBar();
   }
 
-  if (textToCopy) {
-    navigator.clipboard.writeText(textToCopy).then(() => {
-      showToast('✅ Teks disalin ke clipboard!');
-    }).catch(() => {
-      showToast('❌ Gagal menyalin teks.');
-    });
+  // Salin teks baris ke clipboard teks (fallback & text copy)
+  if (state.selectedLines.size > 0) {
+    const sorted = Array.from(state.selectedLines).sort((a, b) => a - b);
+    const textToCopy = sorted.map(i => tab.lines[i] || '').join('\n');
+    if (textToCopy && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textToCopy).catch(() => {});
+    }
   }
+
+  // Picu screenshot dan buka modal Windows 11 Snipping Tool (sama seperti Ctrl+C)
+  copyScreenshot('selection');
 };
 
 // Attach right-click on editorWrapper (delegated)

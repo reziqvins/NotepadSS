@@ -387,18 +387,36 @@ export function doCapture(options) {
         totalWrappedLines += lt.wrapped.length;
       }
 
-      // Measure tab width
+      // Measure all tabs width
       const tabFontSize = Math.round(13 * scale);
       measureCtx.font = `${tabFontSize}px Segoe UI, Roboto, Helvetica, Arial, sans-serif`;
-      const tabTitleText = fullFilePath;
-      const titleTextWidth = measureCtx.measureText(tabTitleText).width;
-      const minTabWidth = titleTextWidth + Math.round(80 * scale);
+
+      const allTabs = (state.tabs && state.tabs.length > 0) ? state.tabs : [tab];
+      const activeTabIdx = state.activeTab >= 0 ? state.activeTab : 0;
+
+      const tabsInfo = allTabs.map((t, idx) => {
+        const isActive = (idx === activeTabIdx);
+        const titleText = isActive ? fullFilePath : (t.name || 'Untitled');
+        const textWidth = measureCtx.measureText(titleText).width;
+        const tabW = Math.round(textWidth + (isActive ? 64 : 56) * scale);
+        return {
+          tab: t,
+          index: idx,
+          isActive,
+          titleText,
+          textWidth,
+          tabW
+        };
+      });
+
+      const totalTabsWidth = tabsInfo.reduce((sum, item) => sum + item.tabW, 0) + Math.round(20 * scale);
+      const minTabWidth = totalTabsWidth;
 
       // 3. Dynamic Canvas Sizing (Panjang & Lapang)
       const extraRightMargin = Math.round(60 * scale);
       const minCanvasWidth = Math.max(
         Math.round(1200 * scale),
-        minTabWidth + padding * 2 + Math.round(100 * scale)
+        minTabWidth + padding * 2 + Math.round(60 * scale)
       );
 
       const calculatedWidth = gutterWidth + codePadding * 2 + maxLineWidth + extraRightMargin + padding * 2;
@@ -453,57 +471,119 @@ export function doCapture(options) {
         ctx.lineTo(canvas.width, tabY + tabBarHeight);
         ctx.stroke();
 
-        // Active Tab
-        const tabPadH = Math.round(14 * scale);
-        ctx.font = `${tabFontSize}px Segoe UI, Roboto, Helvetica, Arial, sans-serif`;
-        const activeTabW = Math.round(titleTextWidth + 64 * scale);
-        const activeTabX = Math.round(4 * scale);
-        const activeTabY = tabY + Math.round(4 * scale);
-        const activeTabH = tabBarHeight - Math.round(4 * scale);
+        // Calculate positions for all open tabs
+        let tabXPos = Math.round(4 * scale);
+        const positionedTabs = tabsInfo.map(info => {
+          const x = tabXPos;
+          tabXPos += info.tabW;
+          return { ...info, x };
+        });
 
-        // Tab background (white, connected to editor)
-        ctx.fillStyle = ssTheme.tabActiveBg;
-        const radius = Math.round(4 * scale);
-        ctx.beginPath();
-        ctx.moveTo(activeTabX, tabY + tabBarHeight);
-        ctx.lineTo(activeTabX, activeTabY + radius);
-        ctx.quadraticCurveTo(activeTabX, activeTabY, activeTabX + radius, activeTabY);
-        ctx.lineTo(activeTabX + activeTabW - radius, activeTabY);
-        ctx.quadraticCurveTo(activeTabX + activeTabW, activeTabY, activeTabX + activeTabW, activeTabY + radius);
-        ctx.lineTo(activeTabX + activeTabW, tabY + tabBarHeight);
-        ctx.closePath();
-        ctx.fill();
+        // 1. Draw Inactive Tabs first (background tabs)
+        for (const t of positionedTabs) {
+          if (t.isActive) continue;
 
-        // Tab border
-        ctx.strokeStyle = ssTheme.tabBorder;
-        ctx.lineWidth = scale;
-        ctx.beginPath();
-        ctx.moveTo(activeTabX, tabY + tabBarHeight);
-        ctx.lineTo(activeTabX, activeTabY + radius);
-        ctx.quadraticCurveTo(activeTabX, activeTabY, activeTabX + radius, activeTabY);
-        ctx.lineTo(activeTabX + activeTabW - radius, activeTabY);
-        ctx.quadraticCurveTo(activeTabX + activeTabW, activeTabY, activeTabX + activeTabW, activeTabY + radius);
-        ctx.lineTo(activeTabX + activeTabW, tabY + tabBarHeight);
-        ctx.stroke();
+          const inactX = t.x;
+          const inactW = t.tabW;
+          const inactY = tabY + Math.round(5 * scale);
+          const inactH = tabBarHeight - Math.round(5 * scale);
+          const inactPadH = Math.round(12 * scale);
+          const inactRadius = Math.round(4 * scale);
 
-        // Notepad++ Active Tab Accent Top Line
-        ctx.fillStyle = ssTheme.tabAccent;
-        ctx.fillRect(activeTabX + 1, activeTabY, activeTabW - 2, Math.round(3 * scale));
+          // Inactive tab background (classic Notepad++ silver-gray tab)
+          ctx.fillStyle = '#dbdbdb';
+          ctx.beginPath();
+          ctx.moveTo(inactX, tabY + tabBarHeight);
+          ctx.lineTo(inactX, inactY + inactRadius);
+          ctx.quadraticCurveTo(inactX, inactY, inactX + inactRadius, inactY);
+          ctx.lineTo(inactX + inactW - inactRadius, inactY);
+          ctx.quadraticCurveTo(inactX + inactW, inactY, inactX + inactW, inactY + inactRadius);
+          ctx.lineTo(inactX + inactW, tabY + tabBarHeight);
+          ctx.closePath();
+          ctx.fill();
 
-        // Document Icon
-        ctx.font = `${Math.round(14 * scale)}px Segoe UI, Arial, sans-serif`;
-        ctx.textBaseline = 'middle';
-        ctx.fillText('📄', activeTabX + tabPadH, activeTabY + activeTabH / 2);
+          // Inactive tab border
+          ctx.strokeStyle = '#b8b8b8';
+          ctx.lineWidth = scale;
+          ctx.beginPath();
+          ctx.moveTo(inactX, tabY + tabBarHeight);
+          ctx.lineTo(inactX, inactY + inactRadius);
+          ctx.quadraticCurveTo(inactX, inactY, inactX + inactRadius, inactY);
+          ctx.lineTo(inactX + inactW - inactRadius, inactY);
+          ctx.quadraticCurveTo(inactX + inactW, inactY, inactX + inactW, inactY + inactRadius);
+          ctx.lineTo(inactX + inactW, tabY + tabBarHeight);
+          ctx.stroke();
 
-        // Tab Title Text
-        ctx.font = `${tabFontSize}px Segoe UI, Roboto, Helvetica, Arial, sans-serif`;
-        ctx.fillStyle = ssTheme.tabActiveText;
-        ctx.fillText(tabTitleText, activeTabX + tabPadH + Math.round(20 * scale), activeTabY + activeTabH / 2);
+          // Document Icon
+          ctx.font = `${Math.round(13 * scale)}px Segoe UI, Arial, sans-serif`;
+          ctx.textBaseline = 'middle';
+          ctx.fillText('📄', inactX + inactPadH, inactY + inactH / 2);
 
-        // Close Icon ×
-        ctx.font = `${Math.round(14 * scale)}px Segoe UI, Arial, sans-serif`;
-        ctx.fillStyle = '#888888';
-        ctx.fillText('×', activeTabX + activeTabW - Math.round(18 * scale), activeTabY + activeTabH / 2);
+          // Inactive Tab Title Text
+          ctx.font = `${tabFontSize}px Segoe UI, Roboto, Helvetica, Arial, sans-serif`;
+          ctx.fillStyle = '#555555';
+          ctx.fillText(t.titleText, inactX + inactPadH + Math.round(18 * scale), inactY + inactH / 2);
+
+          // Close Icon ×
+          ctx.font = `${Math.round(13 * scale)}px Segoe UI, Arial, sans-serif`;
+          ctx.fillStyle = '#888888';
+          ctx.fillText('×', inactX + inactW - Math.round(16 * scale), inactY + inactH / 2);
+        }
+
+        // 2. Draw Active Tab (in foreground, connects seamlessly with editor)
+        const activeTabInfo = positionedTabs.find(t => t.isActive);
+        if (activeTabInfo) {
+          const tabPadH = Math.round(14 * scale);
+          ctx.font = `${tabFontSize}px Segoe UI, Roboto, Helvetica, Arial, sans-serif`;
+          const activeTabW = activeTabInfo.tabW;
+          const activeTabX = activeTabInfo.x;
+          const activeTabY = tabY + Math.round(3 * scale);
+          const activeTabH = tabBarHeight - Math.round(3 * scale);
+          const radius = Math.round(4 * scale);
+
+          // Tab background (white, connected to editor, covers the bottom border)
+          ctx.fillStyle = ssTheme.tabActiveBg;
+          ctx.beginPath();
+          ctx.moveTo(activeTabX, tabY + tabBarHeight + scale);
+          ctx.lineTo(activeTabX, activeTabY + radius);
+          ctx.quadraticCurveTo(activeTabX, activeTabY, activeTabX + radius, activeTabY);
+          ctx.lineTo(activeTabX + activeTabW - radius, activeTabY);
+          ctx.quadraticCurveTo(activeTabX + activeTabW, activeTabY, activeTabX + activeTabW, activeTabY + radius);
+          ctx.lineTo(activeTabX + activeTabW, tabY + tabBarHeight + scale);
+          ctx.closePath();
+          ctx.fill();
+
+          // Tab border
+          ctx.strokeStyle = ssTheme.tabBorder;
+          ctx.lineWidth = scale;
+          ctx.beginPath();
+          ctx.moveTo(activeTabX, tabY + tabBarHeight + scale);
+          ctx.lineTo(activeTabX, activeTabY + radius);
+          ctx.quadraticCurveTo(activeTabX, activeTabY, activeTabX + radius, activeTabY);
+          ctx.lineTo(activeTabX + activeTabW - radius, activeTabY);
+          ctx.quadraticCurveTo(activeTabX + activeTabW, activeTabY, activeTabX + activeTabW, activeTabY + radius);
+          ctx.lineTo(activeTabX + activeTabW, tabY + tabBarHeight + scale);
+          ctx.stroke();
+
+          // Notepad++ Active Tab Accent Top Line
+          ctx.fillStyle = ssTheme.tabAccent;
+          ctx.fillRect(activeTabX + 1, activeTabY, activeTabW - 2, Math.round(3 * scale));
+
+          // Document Icon
+          ctx.font = `${Math.round(14 * scale)}px Segoe UI, Arial, sans-serif`;
+          ctx.textBaseline = 'middle';
+          ctx.fillText('📄', activeTabX + tabPadH, activeTabY + activeTabH / 2);
+
+          // Tab Title Text
+          ctx.font = `${tabFontSize}px Segoe UI, Roboto, Helvetica, Arial, sans-serif`;
+          ctx.fillStyle = ssTheme.tabActiveText;
+          ctx.fillText(activeTabInfo.titleText, activeTabX + tabPadH + Math.round(20 * scale), activeTabY + activeTabH / 2);
+
+          // Close Icon ×
+          ctx.font = `${Math.round(14 * scale)}px Segoe UI, Arial, sans-serif`;
+          ctx.fillStyle = '#888888';
+          ctx.fillText('×', activeTabX + activeTabW - Math.round(18 * scale), activeTabY + activeTabH / 2);
+        }
       }
 
       // 6. Draw Gutter & Line Numbers

@@ -105,9 +105,28 @@ export function setupKeyboardShortcuts() {
       copyScreenshot('selection');
       return;
     }
-    if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'c' && state.selectedLines.size > 0 && document.activeElement !== searchInput) {
+    if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'c' && document.activeElement !== searchInput) {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        return;
+      }
+
+      // Jika baris belum dipilih tetapi user menyeleksi teks dengan mouse drag di editor
       const sel = window.getSelection();
-      if (!sel || sel.toString().length === 0) {
+      if (state.selectedLines.size === 0 && sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+        const rows = document.querySelectorAll('.editor-row');
+        rows.forEach(row => {
+          if (sel.containsNode(row, true)) {
+            const line = parseInt(row.getAttribute('data-line'), 10);
+            if (!isNaN(line)) state.selectedLines.add(line);
+          }
+        });
+        if (state.selectedLines.size > 0) {
+          updateRowSelectionDOM();
+          updateSelectionBar();
+        }
+      }
+
+      if (state.selectedLines.size > 0) {
         e.preventDefault();
         copyScreenshot('selection');
         return;
