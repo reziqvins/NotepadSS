@@ -118,13 +118,57 @@ export function changeTheme(themeName) {
   state.theme = themeName;
   const t = themes[themeName];
   if (!t) return;
-  document.documentElement.style.setProperty('--bg-editor', t.bgEditor);
-  document.documentElement.style.setProperty('--bg-gutter', t.bgGutter);
-  document.documentElement.style.setProperty('--text-primary', t.textPrimary);
-  document.documentElement.style.setProperty('--text-gutter', t.textGutter);
-  document.documentElement.style.setProperty('--line-highlight', t.lineHighlight);
-  document.documentElement.style.setProperty('--bg-selection', t.bgSelection);
-  document.documentElement.style.setProperty('--border-color', t.gutterBorder);
-  document.documentElement.style.setProperty('--bg-statusbar', t.statusbar);
+
+  const root = document.documentElement;
+  root.style.setProperty('--bg-editor', t.bgEditor);
+  root.style.setProperty('--bg-gutter', t.bgGutter);
+  root.style.setProperty('--text-primary', t.textPrimary);
+  root.style.setProperty('--text-gutter', t.textGutter);
+  root.style.setProperty('--line-highlight', t.lineHighlight);
+  root.style.setProperty('--bg-selection', t.bgSelection);
+  root.style.setProperty('--border-color', t.gutterBorder);
+  root.style.setProperty('--bg-statusbar', t.statusbar);
+  root.style.setProperty('--accent', t.accent);
+  root.style.setProperty('--accent-hover', t.accent);
+
+  // Derive surrounding UI colors from theme
+  const isDark = themeName !== 'light';
+  const menubarBg = isDark ? shadeColor(t.bgGutter, -10) : '#f0f0f0';
+  const toolbarBg = isDark ? shadeColor(t.bgGutter, -5) : '#e8e8e8';
+  const secondaryBg = isDark ? shadeColor(t.bgEditor, 10) : '#fafafa';
+  const tertiaryBg  = isDark ? shadeColor(t.bgEditor, 20) : '#efefef';
+  const tabInactive = isDark ? shadeColor(t.bgEditor, 15) : '#d8d8d8';
+  const textMenu    = isDark ? '#cccccc' : '#333333';
+  const textSecondary = isDark ? '#969696' : '#777777';
+  const hoverBg     = isDark ? shadeColor(t.bgGutter, 15) : '#d9d9d9';
+
+  root.style.setProperty('--bg-primary', t.bgEditor);
+  root.style.setProperty('--bg-secondary', secondaryBg);
+  root.style.setProperty('--bg-tertiary', tertiaryBg);
+  root.style.setProperty('--bg-menubar', menubarBg);
+  root.style.setProperty('--bg-toolbar', toolbarBg);
+  root.style.setProperty('--bg-tab-active', t.bgEditor);
+  root.style.setProperty('--bg-tab-inactive', tabInactive);
+  root.style.setProperty('--bg-hover', hoverBg);
+  root.style.setProperty('--text-menu', textMenu);
+  root.style.setProperty('--text-secondary', textSecondary);
+  root.style.setProperty('--scrollbar-track', t.bgEditor);
+  root.style.setProperty('--minimap-bg', t.bgEditor);
+  root.style.setProperty('--text-active-line', isDark ? '#ffffff' : '#000000');
+  root.style.setProperty('--text-statusbar', '#ffffff');
+
   _renderEditor();
+  closeAllMenus();
+}
+
+/** Lighten/darken a hex color by amount (-255..255) */
+function shadeColor(hex, amount) {
+  if (!hex || hex === 'transparent') return hex;
+  let col = hex.replace('#', '');
+  if (col.length === 3) col = col[0]+col[0]+col[1]+col[1]+col[2]+col[2];
+  const num = parseInt(col, 16);
+  let r = Math.min(255, Math.max(0, (num >> 16) + amount));
+  let g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + amount));
+  let b = Math.min(255, Math.max(0, (num & 0xff) + amount));
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
 }

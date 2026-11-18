@@ -247,6 +247,72 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('.menu-item')) {
     closeAllMenus();
   }
+  // Close context menu on any click
+  const ctx = document.getElementById('contextMenu');
+  if (ctx && !e.target.closest('#contextMenu')) {
+    ctx.classList.remove('visible');
+  }
+});
+
+// ─── Right-click Context Menu ───────────────────────────────────────────────
+let _contextLineIndex = -1;
+
+function showContextMenu(e, lineIndex) {
+  e.preventDefault();
+  _contextLineIndex = lineIndex;
+  const ctx = document.getElementById('contextMenu');
+  if (!ctx) return;
+  ctx.style.left = e.clientX + 'px';
+  ctx.style.top  = e.clientY + 'px';
+  ctx.classList.add('visible');
+}
+
+window.contextHideLines = function() {
+  const ctx = document.getElementById('contextMenu');
+  if (ctx) ctx.classList.remove('visible');
+  // Hide selected lines if any, otherwise hide the right-clicked line
+  if (state.selectedLines.size > 0) {
+    hideSelectedLines();
+  } else if (_contextLineIndex >= 0) {
+    hideSingleLine(_contextLineIndex);
+  }
+};
+
+window.contextCopyText = function() {
+  const ctx = document.getElementById('contextMenu');
+  if (ctx) ctx.classList.remove('visible');
+  const tab = state.tabs[state.activeTab];
+  if (!tab) return;
+
+  let textToCopy = '';
+  if (state.selectedLines.size > 0) {
+    const sorted = Array.from(state.selectedLines).sort((a, b) => a - b);
+    textToCopy = sorted.map(i => tab.lines[i] || '').join('\n');
+  } else if (_contextLineIndex >= 0 && tab.lines[_contextLineIndex] !== undefined) {
+    textToCopy = tab.lines[_contextLineIndex];
+  }
+
+  if (textToCopy) {
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      showToast('✅ Teks disalin ke clipboard!');
+    }).catch(() => {
+      showToast('❌ Gagal menyalin teks.');
+    });
+  }
+};
+
+// Attach right-click on editorWrapper (delegated)
+document.addEventListener('DOMContentLoaded', () => {
+  const wrapper = document.getElementById('editorWrapper');
+  if (wrapper) {
+    wrapper.addEventListener('contextmenu', (e) => {
+      const row = e.target.closest('.editor-row');
+      if (row) {
+        const lineIndex = parseInt(row.getAttribute('data-line'), 10);
+        showContextMenu(e, lineIndex);
+      }
+    });
+  }
 });
 
 // App Initialization
