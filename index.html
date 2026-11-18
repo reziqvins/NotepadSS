@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TextShot - Notepad++ Style Text File Screenshot Tool</title>
+  <link rel="icon" type="image/x-icon" href="app.ico">
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Consolas&family=JetBrains+Mono:wght@400;500;700&family=Source+Code+Pro:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- MENU BAR -->
+  <div class="menubar">
+    <div class="app-icon">⚡</div>
+    
+    <!-- File Menu -->
+    <div class="menu-item" onclick="toggleMenu(this)">
+      File
+      <div class="menu-dropdown">
+        <div class="dropdown-item" onclick="openFile()">
+          Buka File... <span class="shortcut">Ctrl+O</span>
+        </div>
+        <div class="dropdown-separator"></div>
+        <div class="dropdown-item" onclick="showScreenshotModal()">
+          Opsi Screenshot... <span class="shortcut">F5</span>
+        </div>
+        <div class="dropdown-item" onclick="quickScreenshot('full')">
+          Quick Full Screenshot <span class="shortcut">F6</span>
+        </div>
+        <div class="dropdown-item" onclick="quickScreenshot('selection')">
+          Simpan Screenshot Terpilih <span class="shortcut">F7</span>
+        </div>
+        <div class="dropdown-item" onclick="copyScreenshot('selection')">
+          Salin Gambar ke Clipboard <span class="shortcut">Ctrl+Shift+C</span>
+        </div>
+        <div class="dropdown-separator"></div>
+        <div class="dropdown-item" onclick="closeCurrentTab()">
+          Tutup Tab <span class="shortcut">Ctrl+W</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Menu -->
+    <div class="menu-item" onclick="toggleMenu(this)">
+      Cari
+      <div class="menu-dropdown">
+        <div class="dropdown-item" onclick="openSearch()">
+          Cari Teks... <span class="shortcut">Ctrl+F</span>
+        </div>
+        <div class="dropdown-item" onclick="findNext()">
+          Cari Berikutnya <span class="shortcut">Enter</span>
+        </div>
+        <div class="dropdown-item" onclick="findPrev()">
+          Cari Sebelumnya <span class="shortcut">Shift+Enter</span>
+        </div>
+        <div class="dropdown-separator"></div>
+        <div class="dropdown-item" onclick="selectAllMatchingLines()">
+          Pilih Semua Baris Hasil Cari
+        </div>
+        <div class="dropdown-item" onclick="hideNonMatchingLines()">
+          Sembunyikan Selain Hasil Cari
+        </div>
+        <div class="dropdown-item" onclick="hideMatchingLines()">
+          Sembunyikan Baris Hasil Cari
+        </div>
+      </div>
+    </div>
+
+    <!-- View Menu -->
+    <div class="menu-item" onclick="toggleMenu(this)">
+      Tampilan
+      <div class="menu-dropdown">
+        <div class="dropdown-item" onclick="toggleWordWrap()">
+          Word Wrap <span class="shortcut">Alt+Z</span>
+        </div>
+        <div class="dropdown-item" onclick="zoomIn()">
+          Perbesar (Zoom In) <span class="shortcut">Ctrl++</span>
+        </div>
+        <div class="dropdown-item" onclick="zoomOut()">
+          Perkecil (Zoom Out) <span class="shortcut">Ctrl+-</span>
+        </div>
+        <div class="dropdown-item" onclick="resetZoom()">
+          Reset Zoom <span class="shortcut">Ctrl+0</span>
+        </div>
+        <div class="dropdown-separator"></div>
+        <div class="dropdown-item" onclick="toggleMinimap()">
+          Toggle Minimap
+        </div>
+      </div>
+    </div>
+
+    <!-- Lines Menu -->
+    <div class="menu-item" onclick="toggleMenu(this)">
+      Baris (Lines)
+      <div class="menu-dropdown">
+        <div class="dropdown-item" onclick="hideSelectedLines()">
+          Sembunyikan Baris Terpilih <span class="shortcut">Ctrl+H</span>
+        </div>
+        <div class="dropdown-separator"></div>
+        <div class="dropdown-item" onclick="showAllLines()">
+          Tampilkan Semua Baris <span class="shortcut">Ctrl+Shift+U</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <button class="toolbar-btn" onclick="openFile()" title="Buka File (Ctrl+O)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 14h13l1-6H7.914l-1-2H1.5v8zm0-9h4.586l1 2H16l-1.333 8H1.5a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5z"/></svg>
+      Buka File
+    </button>
+    <div class="toolbar-separator"></div>
+
+    <button class="toolbar-btn" onclick="openSearch()" title="Cari Teks (Ctrl+F)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>
+      Cari (Ctrl+F)
+    </button>
+    <div class="toolbar-separator"></div>
+
+    <button class="toolbar-btn" onclick="quickScreenshot('full')" title="Quick Full Screenshot (F6)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 1.5H5.5L4.25 3.5H1.5a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-2.75L10.5 1.5zM8 11.5a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
+      Full Screenshot (F6)
+    </button>
+    <button class="toolbar-btn accent-btn" id="ssSelectionBtn" onclick="quickScreenshot('selection')" title="Simpan Screenshot Baris Terpilih ke File (F7)" disabled>
+      📸 Shot (F7)
+    </button>
+    <button class="toolbar-btn" id="copySelectionBtn" onclick="copyScreenshot('selection')" title="Salin Gambar ke Clipboard (Ctrl+C / Ctrl+Shift+C)" disabled style="color:#69f0ae; font-weight:600;">
+      📋 Copy Gambar
+    </button>
+    <button class="toolbar-btn primary-snip-btn" id="openSnipBtn" onclick="openSnippingToolDirectly()" title="Buka Windows 11 Snipping Tool (Edit, Anotasi & Salin)">
+      ✂️ Snipping Tool
+    </button>
+    <button class="toolbar-btn" onclick="showScreenshotModal()" title="Opsi Screenshot Lengkap (F5)">
+      ⚙ Opsi (F5)
+    </button>
+    <div class="toolbar-separator"></div>
+
+    <button class="toolbar-btn" id="wrapBtn" onclick="toggleWordWrap()" title="Toggle Word Wrap (Alt+Z)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v1H2V3zm0 4h9.5a2.5 2.5 0 0 1 0 5H10v-1.5l-3 2 3 2V13h1.5a3.5 3.5 0 0 0 0-7H2V7zm0 5h5v1H2v-1z"/></svg>
+      Word Wrap
+    </button>
+    <button class="toolbar-btn" id="hidePanelBtn" onclick="hideSelectedLines()" title="Sembunyikan Baris Terpilih (Ctrl+H)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v1.5H2V3zm0 3.5h12V8H2V6.5zm0 3.5h8V11.5H2V10zm0 3.5h12V15H2v-1.5zM13 10l-2 2h4l-2-2z"/></svg>
+      Hide Lines
+    </button>
+    <button class="toolbar-btn" onclick="showAllLines()" title="Tampilkan Semua Baris (Ctrl+Shift+U)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v1.5H2V3zm0 3.5h12V8H2V6.5zm0 3.5h12V11.5H2V10zm0 3.5h12V15H2v-1.5z"/></svg>
+      Show All
+    </button>
+    <div class="toolbar-separator"></div>
+
+    <label>Font:</label>
+    <select id="fontSelect" onchange="changeFont(this.value)">
+      <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+      <option value="'Consolas', monospace">Consolas</option>
+      <option value="'Source Code Pro', monospace">Source Code Pro</option>
+      <option value="'Courier New', monospace">Courier New</option>
+    </select>
+    <label>Size:</label>
+    <input type="number" id="fontSizeInput" value="14" min="8" max="48" onchange="changeFontSize(this.value)">
+    <label>px</label>
+    <div class="toolbar-separator"></div>
+
+    <label>Tema:</label>
+    <select id="themeSelect" onchange="changeTheme(this.value)">
+      <option value="dark">Dark (VS Code)</option>
+      <option value="monokai">Monokai</option>
+      <option value="dracula">Dracula</option>
+      <option value="light">Light</option>
+      <option value="solarized">Solarized Dark</option>
+    </select>
+  </div>
+
+  <!-- FLOATING SEARCH BAR (Ctrl + F) -->
+  <div class="search-widget" id="searchWidget">
+    <div class="search-row">
+      <div class="search-input-wrap">
+        <input type="text" id="searchInput" placeholder="Cari kata atau teks..." oninput="onSearchInput()">
+        <span class="search-match-badge" id="searchBadge"></span>
+      </div>
+      <button class="search-btn" onclick="findPrev()" title="Sebelumnya (Shift+Enter)">▲</button>
+      <button class="search-btn" onclick="findNext()" title="Berikutnya (Enter)">▼</button>
+      <button class="search-btn" id="matchCaseBtn" onclick="toggleMatchCase()" title="Sensitif Huruf Besar/Kecil (Match Case)">Aa</button>
+      <button class="search-close-btn" onclick="closeSearch()" title="Tutup (Esc)">✕</button>
+    </div>
+    <div class="search-actions-row">
+      <span style="color:var(--text-secondary); font-size:11px;">Aksi Pencarian:</span>
+      <div class="search-extra-btns">
+        <button class="search-btn" onclick="selectAllMatchingLines()" title="Pilih semua baris hasil pencarian untuk di-screenshot">Pilih Semua Hasil</button>
+        <button class="search-btn" onclick="hideNonMatchingLines()" title="Hanya tampilkan baris yang mengandung kata kunci pencarian">Hanya Tampilkan Hasil</button>
+        <button class="search-btn" onclick="hideMatchingLines()" title="Sembunyikan baris yang cocok">Sembunyikan Hasil</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SELECTION BAR -->
+  <div class="selection-bar" id="selectionBar">
+    <div class="sel-info">
+      <span>📌 <strong id="selCount">0</strong> baris dipilih</span>
+      <span id="selRange" style="color:#5ec4d4;"></span>
+    </div>
+    <div class="sel-actions">
+      <button onclick="copyScreenshot('selection')" style="background:#28a745; font-weight:600;" title="Salin gambar hasil screenshot ke Clipboard (Ctrl+C / Ctrl+Shift+C)">📋 Copy Gambar (Tinggal Paste)</button>
+      <button onclick="quickScreenshot('selection')">📸 Simpan File (F7)</button>
+      <button onclick="hideSelectedLines()">🙈 Sembunyikan Terpilih (Hide)</button>
+      <button class="clear-btn" onclick="clearSelection()">✕ Batal Pilih</button>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tabbar" id="tabbar"></div>
+
+  <!-- MAIN EDITOR CONTAINER -->
+  <div class="editor-container" id="editorContainer">
+    <!-- Welcome Screen -->
+    <div class="welcome-screen" id="welcomeScreen">
+      <div class="logo">⚡</div>
+      <h2>TextShot</h2>
+      <p>Screenshot file teks penuh tanpa terpotong ke samping atau ke bawah, tajam, dengan header tab Notepad++ mode terang dan fitur sembunyikan baris.</p>
+      <button class="open-btn" onclick="openFile()">📂 Buka File TXT...</button>
+      <div style="margin-top:20px; font-size:12px; color:#888; line-height:2; text-align:left; background:rgba(255,255,255,0.04); padding:16px 20px; border-radius:8px; border:1px solid #333; max-width:560px;">
+        <strong style="color:#ccc;">Fitur & Pintasan Cepat:</strong><br>
+        • <strong>Buka file:</strong> Klik tombol di atas, drag & drop file, atau tekan <code>Ctrl + O</code><br>
+        • <strong>Pencarian:</strong> Tekan <code>Ctrl + F</code> (bisa pilih atau sembunyikan hasil cari)<br>
+        • <strong>Blok Baris:</strong> Klik nomor baris di kiri (tahan <code>Shift</code> untuk banyak baris)<br>
+        • <strong>Copy Gambar (Tanpa Simpan):</strong> Tekan <strong>Ctrl + C</strong> atau klik tombol hijau <code>📋 Copy Gambar</code><br>
+        • <strong>Simpan File Screenshot:</strong> Tekan <strong>F7</strong> (terpilih) atau <strong>F6</strong> (full)<br>
+        • <strong>Sembunyikan baris:</strong> Klik ikon 👁 di samping nomor baris atau tekan <strong>Ctrl + Shift + H</strong>
+      </div>
+    </div>
+
+    <!-- Editor Wrapper -->
+    <div id="editorPanel">
+      <div class="editor-wrapper" id="editorWrapper"></div>
+    </div>
+
+    <!-- Minimap -->
+    <div class="minimap" id="minimap" style="display:none;">
+      <canvas id="minimapCanvas"></canvas>
+    </div>
+
+    <!-- Drag & Drop Zone Overlay -->
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-zone-text">📄 Lepaskan file teks di sini</div>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="statusbar">
+    <div class="statusbar-left">
+      <span class="status-item" id="statusMode">Ready</span>
+      <span class="status-item" id="statusLines">Lines: 0</span>
+      <span class="status-item" id="statusHidden">Hidden: 0</span>
+      <span class="status-item" id="statusSelected" style="color:#8ed6e8;">Selected: 0</span>
+    </div>
+    <div class="statusbar-right">
+      <span class="status-item" id="statusEncoding">UTF-8</span>
+      <span class="status-item" id="statusEol">Windows (CR LF)</span>
+      <span class="status-item" id="statusZoom">100%</span>
+      <span class="status-item">TextShot v3.0</span>
+    </div>
+  </div>
+
+  <!-- SCREENSHOT OPTIONS MODAL (F5) -->
+  <div class="modal-overlay" id="screenshotModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span>📸 Pengaturan Screenshot</span>
+        <div class="side-panel-close" onclick="closeScreenshotModal()">✕</div>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px;">Target Screenshot:</div>
+        <div class="scope-options">
+          <div class="scope-option active" id="scopeFull" onclick="setScope('full')">
+            <span class="scope-icon">📄</span>
+            <span class="scope-label">Semua Baris</span>
+            <span class="scope-desc">Seluruh dokumen</span>
+          </div>
+          <div class="scope-option" id="scopeSelection" onclick="setScope('selection')">
+            <span class="scope-icon">📌</span>
+            <span class="scope-label">Baris Terpilih</span>
+            <span class="scope-desc" id="scopeSelDesc">Pilih baris dahulu</span>
+          </div>
+          <div class="scope-option" id="scopeRange" onclick="setScope('range')">
+            <span class="scope-icon">📏</span>
+            <span class="scope-label">Rentang Baris</span>
+            <span class="scope-desc">Kustom nomor baris</span>
+          </div>
+        </div>
+
+        <div id="rangeInput" style="display:none; margin-bottom:14px;">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Dari Baris</label>
+              <input type="number" id="ssRangeFrom" value="1" min="1">
+            </div>
+            <div class="form-group">
+              <label>Sampai Baris</label>
+              <input type="number" id="ssRangeTo" value="1" min="1">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Judul Header Tab (Full File Path Notepad++)</label>
+          <input type="text" id="ssTabTitle" placeholder="Contoh: D:\project\data.txt">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Format Gambar</label>
+            <select id="ssFormat">
+              <option value="png">PNG (Tajam / Lossless)</option>
+              <option value="jpeg">JPEG</option>
+              <option value="webp">WebP</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ketajaman DPI (Scale)</label>
+            <select id="ssScale">
+              <option value="1">1x (Standard)</option>
+              <option value="2" selected>2x (Retina - Sangat Tajam)</option>
+              <option value="3">3x (Ultra HD - Super Tajam)</option>
+              <option value="4">4x (Print Quality)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Lebar Kanvas / Mode Panjang</label>
+            <select id="ssWidthMode">
+              <option value="full" selected>Panjang Penuh (Tanpa Potong / Mengikuti Teks Terpanjang)</option>
+              <option value="wide">Widescreen Ekstra Lebar (1600px)</option>
+              <option value="wrap120">Wrap 120 Karakter</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Padding Margin (px)</label>
+            <input type="number" id="ssPadding" value="24" min="0" max="100">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="ssIncludeHeader" checked>
+            Sertakan Header Tab Notepad++ (Mode Terang)
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="ssLineNumbers" checked>
+            Sertakan Nomor Baris (Gutter)
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" style="background:var(--bg-hover);" onclick="closeScreenshotModal()">Batal</button>
+        <button class="btn" style="background:#0078d4; font-weight:600;" onclick="captureScreenshotAndCopy()">✂️ Salin & Buka Snipping Tool</button>
+        <button class="btn" onclick="captureScreenshot()">📸 Simpan ke File</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WINDOWS 11 SNIPPING TOOL MODAL -->
+  <div class="snipping-modal-overlay" id="snippingModal">
+    <!-- Top Floating Toolbar -->
+    <div class="snipping-header">
+      <div class="snipping-title-group">
+        <span class="snip-icon">✂️</span>
+        <span>Snipping Tool</span>
+      </div>
+
+      <!-- Center Tools -->
+      <div class="snipping-toolbar-center">
+        <!-- Pen Tool with Dropdown -->
+        <button class="snip-tool-btn active" id="snipToolPen" onclick="selectSnipTool('pen')" title="Ballpoint Pen (P)">
+          <svg viewBox="0 0 16 16" fill="currentColor">
+            <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+          </svg>
+          <span class="chevron-down" onclick="event.stopPropagation(); toggleSnipPopup('penPopup')">▼</span>
+          <!-- Pen Palette Popup -->
+          <div class="snip-popup" id="penPopup">
+            <div style="font-size:11px; color:#aaa; margin-bottom:6px;">Warna Pulpen:</div>
+            <div class="snip-palette">
+              <div class="snip-color-swatch active" style="background:#e74c3c;" onclick="setPenColor('#e74c3c', this)"></div>
+              <div class="snip-color-swatch" style="background:#000000; border:1px solid #555;" onclick="setPenColor('#000000', this)"></div>
+              <div class="snip-color-swatch" style="background:#0078d4;" onclick="setPenColor('#0078d4', this)"></div>
+              <div class="snip-color-swatch" style="background:#2ecc71;" onclick="setPenColor('#2ecc71', this)"></div>
+              <div class="snip-color-swatch" style="background:#f1c40f;" onclick="setPenColor('#f1c40f', this)"></div>
+              <div class="snip-color-swatch" style="background:#ffffff;" onclick="setPenColor('#ffffff', this)"></div>
+              <div class="snip-color-swatch" style="background:#9b59b6;" onclick="setPenColor('#9b59b6', this)"></div>
+              <div class="snip-color-swatch" style="background:#e67e22;" onclick="setPenColor('#e67e22', this)"></div>
+              <div class="snip-color-swatch" style="background:#1abc9c;" onclick="setPenColor('#1abc9c', this)"></div>
+              <div class="snip-color-swatch" style="background:#e91e63;" onclick="setPenColor('#e91e63', this)"></div>
+            </div>
+            <div class="snip-slider-group">
+              <span>Ketebalan:</span>
+              <input type="range" id="penSizeSlider" min="1" max="14" value="3" oninput="setPenSize(this.value)">
+              <span id="penSizeVal">3px</span>
+            </div>
+          </div>
+        </button>
+
+        <!-- Highlighter Tool with Dropdown -->
+        <button class="snip-tool-btn" id="snipToolHighlighter" onclick="selectSnipTool('highlighter')" title="Highlighter / Stabilo (H)">
+          <svg viewBox="0 0 16 16" fill="currentColor">
+            <path d="M11.096.644a2 2 0 0 1 2.791.036l1.433 1.433a2 2 0 0 1 .035 2.791l-.413.435-8.07 8.995a.5.5 0 0 1-.372.166h-3a.5.5 0 0 1-.354-.854l5.5-5.5 1.414 1.414-4.5 4.5h2.086l7.734-8.622.373-.393a1 1 0 0 0-.018-1.396l-1.433-1.433a1 1 0 0 0-1.396-.018l-.435.413 1.414 1.414.435-.413z"/>
+          </svg>
+          <span class="chevron-down" onclick="event.stopPropagation(); toggleSnipPopup('highlighterPopup')">▼</span>
+          <!-- Highlighter Palette Popup -->
+          <div class="snip-popup" id="highlighterPopup">
+            <div style="font-size:11px; color:#aaa; margin-bottom:6px;">Warna Stabilo:</div>
+            <div class="snip-palette">
+              <div class="snip-color-swatch active" style="background:#f1c40f;" onclick="setHighlighterColor('#f1c40f', this)"></div>
+              <div class="snip-color-swatch" style="background:#2ecc71;" onclick="setHighlighterColor('#2ecc71', this)"></div>
+              <div class="snip-color-swatch" style="background:#00d2d3;" onclick="setHighlighterColor('#00d2d3', this)"></div>
+              <div class="snip-color-swatch" style="background:#ff9ff3;" onclick="setHighlighterColor('#ff9ff3', this)"></div>
+              <div class="snip-color-swatch" style="background:#ff9f43;" onclick="setHighlighterColor('#ff9f43', this)"></div>
+            </div>
+            <div class="snip-slider-group">
+              <span>Lebar:</span>
+              <input type="range" id="hlSizeSlider" min="10" max="36" value="18" oninput="setHlSize(this.value)">
+              <span id="hlSizeVal">18px</span>
+            </div>
+          </div>
+        </button>
+
+        <!-- Eraser Tool -->
+        <button class="snip-tool-btn" id="snipToolEraser" onclick="selectSnipTool('eraser')" title="Penghapus (E)">
+          <svg viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8.086 2.207a2 2 0 0 1 2.828 0l3.879 3.879a2 2 0 0 1 0 2.828l-5.5 5.5A2 2 0 0 1 7.879 15H5.12a2 2 0 0 1-1.414-.586l-2.5-2.5a2 2 0 0 1 0-2.828l6.879-6.879zm2.121.707a1 1 0 0 0-1.414 0L4.16 7.547l5.293 5.293 4.633-4.633a1 1 0 0 0 0-1.414l-3.879-3.879zM8.746 13.547 3.453 8.254 1.914 9.793a1 1 0 0 0 0 1.414l2.5 2.5a1 1 0 0 0 .707.293H7.88a1 1 0 0 0 .707-.293l.16-.16z"/>
+          </svg>
+        </button>
+
+        <!-- Shapes Tool with Dropdown -->
+        <button class="snip-tool-btn" id="snipToolShapes" onclick="selectSnipTool('shape')" title="Bentuk Penanda / Kotak / Panah (R)">
+          <svg viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+            <path d="M1 1h6v6H1V1zm1 1v4h4V2H2z"/>
+          </svg>
+          <span class="chevron-down" onclick="event.stopPropagation(); toggleSnipPopup('shapesPopup')">▼</span>
+          <!-- Shapes Menu Popup -->
+          <div class="snip-popup" id="shapesPopup">
+            <div class="snip-shapes-menu">
+              <div class="snip-shape-option active" id="shapeRect" onclick="setShapeType('rect', this)">
+                <span>🔲</span> Kotak Persegi (Rectangle)
+              </div>
+              <div class="snip-shape-option" id="shapeArrow" onclick="setShapeType('arrow', this)">
+                <span>↗</span> Panah Penunjuk (Arrow)
+              </div>
+              <div class="snip-shape-option" id="shapeCircle" onclick="setShapeType('circle', this)">
+                <span>⭕</span> Lingkaran (Circle)
+              </div>
+              <div class="snip-shape-option" id="shapeLine" onclick="setShapeType('line', this)">
+                <span>➖</span> Garis Lurus (Line)
+              </div>
+            </div>
+          </div>
+        </button>
+
+        <div class="snip-separator"></div>
+
+        <!-- Crop Tool -->
+        <button class="snip-tool-btn" id="snipToolCrop" onclick="snipFitScreen()" title="Sesuaikan Tampilan / Crop">
+          <svg viewBox="0 0 16 16" fill="currentColor">
+            <path d="M3.5.5A.5.5 0 0 1 4 1v11.5a.5.5 0 0 0 .5.5H15a.5.5 0 0 1 0 1H4a1.5 1.5 0 0 1-1.5-1.5V1a.5.5 0 0 1 .5-.5z"/>
+            <path d="M12.5 15.5a.5.5 0 0 1-.5-.5V3.5a.5.5 0 0 0-.5-.5H1a.5.5 0 0 1 0-1h10.5A1.5 1.5 0 0 1 13 3.5V15a.5.5 0 0 1-.5.5z"/>
+          </svg>
+        </button>
+
+        <!-- Text Action / Extractor -->
+        <button class="snip-tool-btn" id="snipToolText" onclick="snipCopyText()" title="Salin Teks Baris (Text Extractor)">
+          <svg viewBox="0 0 16 16" fill="currentColor">
+            <path d="M1.5 2A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13zM1 3.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9z"/>
+            <path d="M3 5h10v1H3V5zm0 2.5h10v1H3V7.5zm0 2.5h7v1H3v-1z"/>
+          </svg>
+        </button>
+
+        <div class="snip-separator"></div>
+
+        <!-- Undo & Redo -->
+        <button class="snip-tool-btn" id="snipUndoBtn" onclick="snipUndo()" title="Urungkan (Ctrl+Z)" disabled>
+          <svg viewBox="0 0 16 16" fill="currentColor">
+            <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
+            <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/>
+          </svg>
+        </button>
+        <button class="snip-tool-btn" id="snipRedoBtn" onclick="snipRedo()" title="Ulangi (Ctrl+Y)" disabled>
+          <svg viewBox="0 0 16 16" fill="currentColor">
+            <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Right Action Tools -->
+      <div class="snipping-header-right">
+        <button class="snip-action-btn" onclick="snipEditInPaint()" title="Buka di Paint / Simpan">
+          <span>🎨</span> Edit in Paint
+        </button>
+        <button class="snip-action-btn" onclick="snipSaveImage()" title="Simpan sebagai file (Ctrl+S)">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v4.5h2a.5.5 0 0 1 .354.854l-2.5 2.5a.5.5 0 0 1-.708 0l-2.5-2.5A.5.5 0 0 1 5.5 6.5h2V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z"/></svg>
+          Simpan
+        </button>
+        <button class="snip-action-btn copy-primary" onclick="snipCopyImage()" title="Salin ke Clipboard (Ctrl+C)">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>
+          Salin (Ctrl+C)
+        </button>
+        <button class="snip-action-btn" onclick="snipShareImage()" title="Bagikan">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5z"/></svg>
+        </button>
+        <button class="snip-action-btn close-btn" onclick="closeSnippingModal()" title="Tutup (Esc)">✕</button>
+      </div>
+    </div>
+
+    <!-- Secondary Floating Toolbar for Shapes & Fill/Outline (Windows 11 Snipping Tool) -->
+    <div class="snip-sub-toolbar" id="snipShapesSubToolbar">
+      <!-- Emoji / Sticker Button -->
+      <div style="position:relative;">
+        <button class="snip-sub-btn" id="subEmojiBtn" onclick="toggleSnipPopup('emojiPopup')" title="Stiker / Emoji">
+          🙂
+        </button>
+        <!-- Emoji Popup -->
+        <div class="snip-fluent-popup" id="emojiPopup" style="width:230px;">
+          <div class="snip-fluent-title">Stiker / Emoji</div>
+          <div class="snip-emoji-grid" id="emojiGrid"></div>
+        </div>
+      </div>
+
+      <!-- Shape Selection Buttons -->
+      <button class="snip-sub-btn active" id="subShapeRect" onclick="setShapeType('rect', this)" title="Persegi / Kotak (Rectangle)">
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+        </svg>
+      </button>
+      <button class="snip-sub-btn" id="subShapeCircle" onclick="setShapeType('circle', this)" title="Lingkaran / Oval (Circle)">
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="8" cy="8" r="6"/>
+        </svg>
+      </button>
+      <button class="snip-sub-btn" id="subShapeLine" onclick="setShapeType('line', this)" title="Garis Lurus (Line)">
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="2" y1="14" x2="14" y2="2"/>
+        </svg>
+      </button>
+      <button class="snip-sub-btn" id="subShapeArrow" onclick="setShapeType('arrow', this)" title="Panah Penunjuk (Arrow)">
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor">
+          <path d="M14 2.5a.5.5 0 0 0-.5-.5h-6a.5.5 0 0 0 0 1h4.793L2.146 13.146a.5.5 0 0 0 .708.708L13 3.707V8.5a.5.5 0 0 0 1 0v-6z"/>
+        </svg>
+      </button>
+
+      <div class="snip-sub-separator"></div>
+
+      <!-- Fill Dropdown Button with Color Indicator -->
+      <div style="position:relative;">
+        <button class="snip-sub-dropdown-btn" id="snipFillBtn" onclick="toggleSnipPopup('fillColorPopup')" title="Warna Isian (Fill)">
+          <span class="snip-color-indicator" id="fillColorIndicator" style="background:#0078d4;"></span>
+          <span>Fill</span>
+          <span style="font-size:10px;">▼</span>
+        </button>
+
+        <!-- Windows 11 Colors Popup for Fill -->
+        <div class="snip-fluent-popup" id="fillColorPopup">
+          <div class="snip-fluent-title">Colors</div>
+          <div class="snip-fluent-grid" id="fillColorsGrid"></div>
+          <div class="snip-opacity-section">
+            <div class="snip-opacity-header">
+              <span>Opacity</span>
+              <span id="fillOpacityVal">100%</span>
+            </div>
+            <input type="range" class="snip-opacity-slider" id="fillOpacitySlider" min="0" max="100" value="100" oninput="setFillOpacity(this.value)">
+          </div>
+        </div>
+      </div>
+
+      <!-- Outline Dropdown Button with Color Indicator -->
+      <div style="position:relative;">
+        <button class="snip-sub-dropdown-btn" id="snipOutlineBtn" onclick="toggleSnipPopup('outlineColorPopup')" title="Warna Garis Tepi (Outline)">
+          <span class="snip-color-indicator slash" id="outlineColorIndicator">⊘</span>
+          <span>Outline</span>
+          <span style="font-size:10px;">▼</span>
+        </button>
+
+        <!-- Windows 11 Colors Popup for Outline -->
+        <div class="snip-fluent-popup" id="outlineColorPopup">
+          <div class="snip-fluent-title">Colors</div>
+          <div class="snip-fluent-grid" id="outlineColorsGrid"></div>
+          <div class="snip-opacity-section">
+            <div class="snip-opacity-header">
+              <span>Opacity</span>
+              <span id="outlineOpacityVal">100%</span>
+            </div>
+            <input type="range" class="snip-opacity-slider" id="outlineOpacitySlider" min="0" max="100" value="100" oninput="setOutlineOpacity(this.value)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Canvas Workspace Viewport -->
+    <div class="snipping-viewport" id="snipViewport">
+      <div class="snipping-canvas-stage" id="snipStage">
+        <canvas id="snipBaseCanvas"></canvas>
+        <canvas id="snipDrawCanvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Floating Zoom Bar -->
+    <div class="snip-zoom-bar">
+      <button class="snip-zoom-btn" onclick="snipZoomOut()" title="Perkecil">−</button>
+      <span class="snip-zoom-label" id="snipZoomLabel">100%</span>
+      <button class="snip-zoom-btn" onclick="snipZoomIn()" title="Perbesar">+</button>
+      <button class="snip-zoom-btn" onclick="snipFitScreen()" title="Sesuaikan Layar">Fit</button>
+    </div>
+  </div>
+
+  <!-- PROGRESS OVERLAY -->
+  <div class="progress-overlay" id="progressOverlay">
+    <div class="progress-box">
+      <div class="spinner"></div>
+      <p id="progressText">Merender screenshot resolusi tinggi...</p>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Hidden file input -->
+  <input type="file" id="fileInput" accept="*/*" style="display:none" multiple>
+
+  <!-- External JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>
