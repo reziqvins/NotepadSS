@@ -2,6 +2,8 @@
   "name": "notepadss",
   "version": "1.0.0",
   "description": "Notepad++ Style Text File Screenshot Tool with Windows 11 Snipping Tool",
+  "author": "reziqvins <nreziq@gmail.com>",
+  "desktopName": "NotepadSS",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
@@ -25,5 +27,34 @@
     "electron": "^45.3.4",
     "vite": "^8.3.8",
     "wait-on": "^8.0.2"
+  },
+  "build": {
+    "appId": "com.notepadss.app",
+    "productName": "TextShot",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "app.ico",
+      "app-icon-512.png"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "app.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "app-icon-512.png",
+      "category": "Utility",
+      "maintainer": "reziqvins <nreziq@gmail.com>"
+    }
   }
 }
